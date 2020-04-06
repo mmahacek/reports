@@ -1,12 +1,12 @@
-from ipam.constants import *
-from ipam.models import IPAddress, Prefix, VRF, VLAN
+from ipam.choices import IPAddressRoleChoices
+from ipam.models import IPAddress, Prefix
 from extras.reports import Report
 
 LOOPBACK_ROLES = [
-    IPADDRESS_ROLE_LOOPBACK,
-    IPADDRESS_ROLE_ANYCAST,
-    IPADDRESS_ROLE_VIP,
-    IPADDRESS_ROLE_VRRP,
+    IPAddressRoleChoices.ROLE_LOOPBACK,
+    IPAddressRoleChoices.ROLE_ANYCAST,
+    IPAddressRoleChoices.ROLE_VIP,
+    IPAddressRoleChoices.ROLE_VRRP,
 ]
 
 # CheckPrefixLength forked from https://gist.github.com/candlerb/5380a7cdd03b60fbd02a664feb266d44
@@ -26,9 +26,7 @@ class CheckPrefixLength(Report):
                                  (ipaddr.family, a.version))
                 continue
             # We allow loopback-like things to be single address *or* have the parent prefix length
-            if ipaddr.role in LOOPBACK_ROLES and (
-                     (a.version == 4 and a.prefixlen == 32) or
-                     (a.version == 6 and a.prefixlen == 128)):
+            if ipaddr.role in LOOPBACK_ROLES and a.size == 1:
                 self.log_success(ipaddr)
                 continue
             parents = [p for p in prefixes if
@@ -38,6 +36,11 @@ class CheckPrefixLength(Report):
                 self.log_info(ipaddr, "No parent prefix")
                 continue
             parent = parents[-1]
+
+            # If parent is a pool, allow single address *or* have the parent prefix length
+            if parent.is_pool and a.size == 1:
+                self.log_success(ipaddr)
+                continue
             if a.prefixlen != parent.prefix.prefixlen:
                 self.log_failure(ipaddr, "prefixlen (%d) inconsistent with parent prefix (%s)" %
                                  (a.prefixlen, str(parent.prefix)))
