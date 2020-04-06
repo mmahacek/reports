@@ -10,7 +10,7 @@ class Check_DNS_A_Record(Report):
 
     def test_dna_a_record(self):
         for device in Device.objects.filter(status=DeviceStatusChoices.STATUS_ACTIVE):
-            if device.interfaces is None:
+            if not device.interfaces.exists():
                 continue
             if device.name is None:
                 self.log_info(device, "No device name")
@@ -37,7 +37,7 @@ class Check_DNS_AAAA_Record(Report):
 
     def test_dns_aaaa_record(self):
         for device in Device.objects.filter(status=DeviceStatusChoices.STATUS_ACTIVE):
-            if device.interfaces is None:
+            if not device.interfaces.exists():
                 continue
             if device.name is None:
                 self.log_info(device, "No device name")
